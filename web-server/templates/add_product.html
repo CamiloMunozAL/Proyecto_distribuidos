@@ -1,0 +1,149 @@
+{% extends 'base.html' %} {% block title %}Agregar Producto - Sistema de
+Inventario{% endblock %} {% block content %}
+<!-- Page Header -->
+<div class="page-header">
+  <div class="d-flex justify-content-between align-items-center">
+    <div>
+      <h2><i class="bi bi-plus-circle"></i> Agregar Nuevo Producto</h2>
+      <p>Completa la información del producto</p>
+    </div>
+    <a href="/dashboard" class="btn btn-outline-primary">
+      <i class="bi bi-arrow-left"></i> Volver a Productos
+    </a>
+  </div>
+</div>
+
+<!-- Mensajes -->
+<div class="alert alert-success d-none" id="productMessage" role="alert">
+  <i class="bi bi-check-circle-fill"></i> <span id="productMessageText"></span>
+</div>
+
+<div class="alert alert-danger d-none" id="productError" role="alert">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  <span id="productErrorText"></span>
+</div>
+
+<!-- Formulario de creación -->
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-clipboard"></i> Información del Producto
+      </div>
+      <div class="card-body">
+        <form id="productForm">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">
+                <i class="bi bi-tag"></i> Nombre del Producto *
+              </label>
+              <input
+                type="text"
+                id="pName"
+                class="form-control"
+                placeholder="Ej: Laptop Dell XPS 15"
+                required
+              />
+              <small class="text-muted"
+                >Determina la base de datos (A-M: DB1, N-Z: DB2)</small
+              >
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">
+                <i class="bi bi-bookmark"></i> Categoría
+              </label>
+              <select id="pCategory" class="form-control">
+                <option value="General">General</option>
+                <option value="Electrónica">Electrónica</option>
+                <option value="Ropa">Ropa</option>
+                <option value="Alimentos">Alimentos</option>
+                <option value="Hogar">Hogar</option>
+                <option value="Deportes">Deportes</option>
+                <option value="Libros">Libros</option>
+                <option value="Juguetes">Juguetes</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">
+                <i class="bi bi-cash"></i> Precio *
+              </label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input
+                  type="number"
+                  id="pPrice"
+                  class="form-control"
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">
+                <i class="bi bi-boxes"></i> Stock *
+              </label>
+              <input
+                type="number"
+                id="pStock"
+                class="form-control"
+                placeholder="0"
+                min="0"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">
+              <i class="bi bi-text-paragraph"></i> Descripción
+            </label>
+            <textarea
+              id="pDesc"
+              class="form-control"
+              rows="4"
+              placeholder="Describe las características del producto..."
+            ></textarea>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-check-circle"></i> Crear Producto
+            </button>
+            <button type="reset" class="btn btn-outline-secondary">
+              <i class="bi bi-x-circle"></i> Limpiar
+            </button>
+            <a href="/dashboard" class="btn btn-outline-danger">
+              <i class="bi bi-arrow-left"></i> Cancelar
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Info Card -->
+    <div
+      class="card mt-3"
+      style="border-left: 4px solid var(--secondary-color)"
+    >
+      <div class="card-body">
+        <h6 class="mb-2">
+          <i class="bi bi-info-circle"></i> Información sobre la distribución
+        </h6>
+        <p class="mb-0 text-muted small">
+          Los productos se almacenan automáticamente en diferentes bases de
+          datos según la primera letra del nombre:
+          <br /><strong>DB1:</strong> Productos A-M |
+          <strong>DB2:</strong> Productos N-Z
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

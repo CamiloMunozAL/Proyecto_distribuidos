@@ -1,0 +1,65 @@
+{% extends 'base.html' %} {% block title %}Usuarios - Sistema de Inventario{%
+endblock %} {% block content %}
+<!-- Page Header -->
+<div class="page-header">
+  <div class="d-flex justify-content-between align-items-center">
+    <div>
+      <h2><i class="bi bi-people-fill"></i> Gestión de Usuarios</h2>
+      <p>Administra los usuarios del sistema</p>
+    </div>
+    <a href="/register-user" class="btn btn-primary">
+      <i class="bi bi-person-plus"></i> Registrar Usuario
+    </a>
+  </div>
+</div>
+
+<!-- Mensajes -->
+<div class="alert alert-success d-none" id="userSuccessMessage" role="alert">
+  <i class="bi bi-check-circle-fill"></i>
+  <span id="userSuccessMessageText"></span>
+</div>
+
+<div class="alert alert-danger d-none" id="usersError" role="alert">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  <span id="usersErrorText"></span>
+</div>
+
+<!-- Tabla de usuarios -->
+<div class="card">
+  <div class="card-header">
+    <i class="bi bi-table"></i> Usuarios Registrados
+  </div>
+  <div class="card-body p-0">
+    <div id="loadingUsersSpinner" class="spinner-container">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+      <p class="mt-3 text-muted">Cargando usuarios...</p>
+    </div>
+
+    <div id="usersContainer" class="d-none">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th><i class="bi bi-person"></i> Usuario</th>
+              <th><i class="bi bi-calendar"></i> Fecha de Registro</th>
+              <th><i class="bi bi-gear"></i> Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="usersTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="emptyUsersState" class="empty-state d-none">
+      <i class="bi bi-people"></i>
+      <h4>No hay usuarios</h4>
+      <p>Comienza agregando el primer usuario al sistema</p>
+      <a href="/register-user" class="btn btn-primary mt-3">
+        <i class="bi bi-person-plus"></i> Registrar Primer Usuario
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
