@@ -12,6 +12,7 @@ app = Flask(__name__)
 CORS(app)  # Habilitar CORS
 app.secret_key = os.getenv("SECRET_KEY")
 AUTH_SERVER_URL = os.getenv("AUTH_SERVER_URL", "http://localhost:5000")
+WEB_SERVER_URL = os.getenv("WEB_SERVER_URL", "http://localhost:3000")
 DB1_URL = os.getenv("DB1_URL")  # Conexion a la base de datos MongoDB 
 DB2_URL = os.getenv("DB2_URL")  # Conexion a la base de datos MongoDB
 
@@ -528,5 +529,36 @@ def delete_user(username):
         return jsonify({'message': f'Error al eliminar usuario: {str(e)}'}), 500
 
 
+# Endpoint de configuración para el frontend
+@app.route('/api/config', methods=['GET'])
+def get_config():
+    """Provee configuración dinámica al frontend"""
+    return jsonify({
+        'auth_server_url': AUTH_SERVER_URL,
+        'web_server_url': WEB_SERVER_URL
+    }), 200
+
+# Health check endpoint
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Endpoint para verificar el estado del servicio"""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'web-server',
+        'version': '1.0.0'
+    }), 200
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=3000, debug=True)
+    # Obtener puerto de variable de entorno o usar 3000 por defecto
+    port = int(os.getenv('PORT', 3000))
+    debug_mode = os.getenv('DEBUG', 'False').lower() == 'true'
+    
+    print(f"""\n{'='*50}
+🚀 Web Server iniciando...
+{'='*50}
+Puerto: {port}
+Auth Server: {AUTH_SERVER_URL}
+Debug: {debug_mode}
+{'='*50}\n""")
+    
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)

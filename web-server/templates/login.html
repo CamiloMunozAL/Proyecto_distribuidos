@@ -5,49 +5,196 @@ Inventario{% endblock %} {% block content %}
     <div class="login-header">
       <i class="bi bi-box-seam" style="font-size: 3rem"></i>
       <h2>Sistema de Inventario</h2>
-      <p>Ingresa tus credenciales para continuar</p>
+      <p id="headerSubtitle">Ingresa tus credenciales para continuar</p>
     </div>
 
     <div class="card">
       <div class="card-body">
-        <form id="loginForm">
-          <div class="mb-3">
-            <label class="form-label">
-              <i class="bi bi-person-fill"></i> Usuario
-            </label>
-            <input
-              type="text"
-              class="form-control"
-              id="username"
-              placeholder="Ingresa tu usuario"
-              required
-            />
+        <!-- Tabs para Login/Registro -->
+        <ul class="nav nav-tabs mb-4" id="authTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link active"
+              id="login-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#login"
+              type="button"
+              role="tab"
+            >
+              <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="register-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#register"
+              type="button"
+              role="tab"
+            >
+              <i class="bi bi-person-plus-fill"></i> Registrarse
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content" id="authTabContent">
+          <!-- Formulario de Login -->
+          <div
+            class="tab-pane fade show active"
+            id="login"
+            role="tabpanel"
+            aria-labelledby="login-tab"
+          >
+            <form id="loginForm">
+              <div class="mb-3">
+                <label class="form-label">
+                  <i class="bi bi-person-fill"></i> Usuario
+                </label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="loginUsername"
+                  placeholder="Ingresa tu usuario"
+                  required
+                />
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">
+                  <i class="bi bi-lock-fill"></i> Contraseña
+                </label>
+                <input
+                  type="password"
+                  class="form-control"
+                  id="loginPassword"
+                  placeholder="Ingresa tu contraseña"
+                  required
+                />
+              </div>
+
+              <div
+                class="alert alert-danger d-none"
+                id="loginError"
+                role="alert"
+              >
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span id="loginErrorText"></span>
+              </div>
+
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
+              </button>
+            </form>
           </div>
 
-          <div class="mb-3">
-            <label class="form-label">
-              <i class="bi bi-lock-fill"></i> Contraseña
-            </label>
-            <input
-              type="password"
-              class="form-control"
-              id="password"
-              placeholder="Ingresa tu contraseña"
-              required
-            />
-          </div>
+          <!-- Formulario de Registro -->
+          <div
+            class="tab-pane fade"
+            id="register"
+            role="tabpanel"
+            aria-labelledby="register-tab"
+          >
+            <form id="registerForm">
+              <div class="mb-3">
+                <label class="form-label">
+                  <i class="bi bi-person-fill"></i> Usuario *
+                </label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="registerUsername"
+                  placeholder="Elige un nombre de usuario"
+                  required
+                />
+                <div class="form-text">
+                  Mínimo 3 caracteres, solo letras y números
+                </div>
+              </div>
 
-          <div class="alert alert-danger d-none" id="loginError" role="alert">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            <span id="loginErrorText"></span>
-          </div>
+              <div class="mb-3">
+                <label class="form-label">
+                  <i class="bi bi-envelope-fill"></i> Correo electrónico *
+                </label>
+                <input
+                  type="email"
+                  class="form-control"
+                  id="registerEmail"
+                  placeholder="tu@email.com"
+                  required
+                />
+              </div>
 
-          <button type="submit" class="btn btn-primary w-100">
-            <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
-          </button>
-        </form>
+              <div class="mb-3">
+                <label class="form-label">
+                  <i class="bi bi-lock-fill"></i> Contraseña *
+                </label>
+                <input
+                  type="password"
+                  class="form-control"
+                  id="registerPassword"
+                  placeholder="Mínimo 6 caracteres"
+                  required
+                  minlength="6"
+                />
+                <div class="form-text">Debe tener al menos 6 caracteres</div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">
+                  <i class="bi bi-lock-fill"></i> Confirmar Contraseña *
+                </label>
+                <input
+                  type="password"
+                  class="form-control"
+                  id="registerPasswordConfirm"
+                  placeholder="Repite tu contraseña"
+                  required
+                  minlength="6"
+                />
+              </div>
+
+              <div
+                class="alert alert-danger d-none"
+                id="registerError"
+                role="alert"
+              >
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span id="registerErrorText"></span>
+              </div>
+
+              <div
+                class="alert alert-success d-none"
+                id="registerSuccess"
+                role="alert"
+              >
+                <i class="bi bi-check-circle-fill"></i>
+                <span id="registerSuccessText"></span>
+              </div>
+
+              <button type="submit" class="btn btn-success w-100">
+                <i class="bi bi-person-plus-fill"></i> Crear Cuenta
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </div>
+
+<style>
+  .nav-tabs .nav-link {
+    color: #6c757d;
+  }
+  .nav-tabs .nav-link.active {
+    color: #0d6efd;
+    font-weight: 500;
+  }
+  .form-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+  }
+</style>
+
 {% endblock %}

@@ -31,7 +31,7 @@ Inventario{% endblock %} {% block content %}
         <i class="bi bi-person-badge"></i> Datos del Usuario
       </div>
       <div class="card-body">
-        <form id="registerForm">
+        <form id="adminRegisterForm">
           <div class="mb-3">
             <label class="form-label">
               <i class="bi bi-person"></i> Nombre de Usuario *
@@ -45,6 +45,22 @@ Inventario{% endblock %} {% block content %}
             />
             <small class="text-muted"
               >Solo letras, números, guiones y guiones bajos</small
+            >
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">
+              <i class="bi bi-envelope"></i> Correo Electrónico *
+            </label>
+            <input
+              type="email"
+              id="regEmail"
+              class="form-control"
+              placeholder="Ej: usuario@ejemplo.com"
+              required
+            />
+            <small class="text-muted"
+              >Ingresa un correo electrónico válido</small
             >
           </div>
 
@@ -95,11 +111,12 @@ Inventario{% endblock %} {% block content %}
     <div class="card mt-3" style="border-left: 4px solid var(--warning-color)">
       <div class="card-body">
         <h6 class="mb-2">
-          <i class="bi bi-shield-check"></i> Requisitos de seguridad
+          <i class="bi bi-shield-check"></i> Requisitos de registro
         </h6>
         <ul class="mb-0 text-muted small">
           <li>La contraseña debe tener al menos 6 caracteres</li>
           <li>El nombre de usuario debe ser único</li>
+          <li>El correo electrónico debe ser único</li>
           <li>Las contraseñas se almacenan de forma segura</li>
         </ul>
       </div>

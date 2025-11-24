@@ -1,5 +1,37 @@
+// ======================
+// CONFIGURACIÓN DINÁMICA
+// ======================
+let CONFIG = {
+  auth_server_url: "http://localhost:5000", // Valor por defecto
+  web_server_url: window.location.origin, // Origen actual
+};
+
+// Cargar configuración desde el backend
+async function loadConfig() {
+  try {
+    const res = await fetch("/api/config");
+    if (res.ok) {
+      const data = await res.json();
+      CONFIG = {
+        auth_server_url: data.auth_server_url,
+        web_server_url: data.web_server_url || window.location.origin,
+      };
+      console.log("✓ Configuración cargada:", CONFIG);
+    }
+  } catch (err) {
+    console.warn(
+      "⚠ No se pudo cargar configuración, usando valores por defecto"
+    );
+  }
+}
+
+// Cargar configuración al inicio
+loadConfig();
+
+// Para compatibilidad con código existente
 const API_BASE = ""; // mismo dominio
-const AUTH_URL = "http://localhost:5000"; // tu Auth Server
+// Función helper para obtener AUTH_URL dinámicamente
+const getAuthURL = () => CONFIG.auth_server_url;
 
 // ======================
 // UTILIDADES
@@ -62,15 +94,15 @@ if (loginForm) {
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
+    const username = document.getElementById("loginUsername").value;
+    const password = document.getElementById("loginPassword").value;
     const errorDiv = document.getElementById("loginError");
     const errorText = document.getElementById("loginErrorText");
 
     hideAlert("loginError");
 
     try {
-      const res = await fetch(`${AUTH_URL}/auth/login`, {
+      const res = await fetch(`${getAuthURL()}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -79,13 +111,106 @@ if (loginForm) {
       const data = await res.json();
 
       if (!res.ok) {
-        errorText.textContent = data.error || "Credenciales incorrectas";
+        errorText.textContent =
+          data.error || data.message || "Credenciales incorrectas";
         errorDiv.classList.remove("d-none");
         return;
       }
 
       localStorage.setItem("token", data.token);
       window.location.href = "/dashboard";
+    } catch (err) {
+      errorText.textContent =
+        "Error de conexión con el servidor de autenticación";
+      errorDiv.classList.remove("d-none");
+    }
+  });
+}
+
+// Register
+const registerForm = document.getElementById("registerForm");
+if (registerForm) {
+  registerForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const username = document.getElementById("registerUsername").value;
+    const email = document.getElementById("registerEmail").value;
+    const password = document.getElementById("registerPassword").value;
+    const passwordConfirm = document.getElementById(
+      "registerPasswordConfirm"
+    ).value;
+    const errorDiv = document.getElementById("registerError");
+    const errorText = document.getElementById("registerErrorText");
+    const successDiv = document.getElementById("registerSuccess");
+    const successText = document.getElementById("registerSuccessText");
+
+    hideAlert("registerError");
+    hideAlert("registerSuccess");
+
+    // Validaciones del lado del cliente
+    if (username.length < 3) {
+      errorText.textContent = "El usuario debe tener al menos 3 caracteres";
+      errorDiv.classList.remove("d-none");
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      errorText.textContent =
+        "El usuario solo puede contener letras, números y guiones bajos";
+      errorDiv.classList.remove("d-none");
+      return;
+    }
+
+    if (password.length < 6) {
+      errorText.textContent = "La contraseña debe tener al menos 6 caracteres";
+      errorDiv.classList.remove("d-none");
+      return;
+    }
+
+    if (password !== passwordConfirm) {
+      errorText.textContent = "Las contraseñas no coinciden";
+      errorDiv.classList.remove("d-none");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${getAuthURL()}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+          role: "user", // Rol por defecto
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        errorText.textContent =
+          data.error || data.message || "Error al registrar usuario";
+        errorDiv.classList.remove("d-none");
+        return;
+      }
+
+      // Mostrar mensaje de éxito
+      successText.textContent =
+        "¡Cuenta creada exitosamente! Redirigiendo al login...";
+      successDiv.classList.remove("d-none");
+
+      // Limpiar formulario
+      registerForm.reset();
+
+      // Redirigir al login después de 2 segundos
+      setTimeout(() => {
+        // Cambiar al tab de login
+        const loginTab = document.getElementById("login-tab");
+        if (loginTab) {
+          loginTab.click();
+        }
+        hideAlert("registerSuccess");
+      }, 2000);
     } catch (err) {
       errorText.textContent =
         "Error de conexión con el servidor de autenticación";
@@ -385,6 +510,7 @@ async function loadUsers() {
             <td><i class="bi bi-person-circle"></i> <strong>${
               u.username
             }</strong></td>
+            <td><i class="bi bi-envelope"></i> ${u.email || "N/A"}</td>
             <td>${formatDate(u.created_at)}</td>
             <td>
               <button class="btn btn-danger btn-sm" onclick="confirmDeleteUser('${
@@ -433,14 +559,15 @@ async function deleteUser(username) {
 }
 
 // ======================
-// USUARIOS - REGISTRAR
+// USUARIOS - REGISTRAR (Administrador)
 // ======================
-const registerForm = document.getElementById("registerForm");
-if (registerForm) {
-  registerForm.addEventListener("submit", async (e) => {
+const adminRegisterForm = document.getElementById("adminRegisterForm");
+if (adminRegisterForm) {
+  adminRegisterForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const username = document.getElementById("regUsername").value;
+    const email = document.getElementById("regEmail").value;
     const password = document.getElementById("regPassword").value;
     const passwordConfirm = document.getElementById("regPasswordConfirm").value;
 
@@ -457,6 +584,7 @@ if (registerForm) {
 
     const payload = {
       username: username,
+      email: email,
       password: password,
     };
 
@@ -474,7 +602,7 @@ if (registerForm) {
 
       if (res.ok) {
         showAlert("registerMessage", "Usuario registrado exitosamente");
-        registerForm.reset();
+        adminRegisterForm.reset();
 
         // Redirigir a usuarios después de 2 segundos
         setTimeout(() => {
