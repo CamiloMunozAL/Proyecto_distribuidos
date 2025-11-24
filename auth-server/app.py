@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from flask_cors import CORS
 
 load_dotenv() # Cargar variables de entorno desde el archivo .env
-
+#Prueba
 # Configuracion de la aplicacion Flask
 app = Flask(__name__)
 CORS(app)  # Habilitar CORS para todas las rutas
@@ -25,18 +25,29 @@ print(f"Conexion a la base de datos MongoDB establecida: {DB3_URL}")
 @app.route('/auth/register', methods=['POST'])
 def register():
     data=request.get_json()
+    
+    # Validar que los campos requeridos estén presentes
+    if not data.get('username'):
+        return jsonify({'message': 'El nombre de usuario es requerido'}), 400
+    if not data.get('email'):
+        return jsonify({'message': 'El correo electrónico es requerido'}), 400
+    if not data.get('password'):
+        return jsonify({'message': 'La contraseña es requerida'}), 400
+    
     # Verificar si el usuario ya existe
     if users_collection.find_one({'username': data['username']}):
         return jsonify({'message': 'Usuario ya existe'}), 400
+    
     # Verificar si correo ya existe
-    if users_collection.find_one({'email': data['email']}):
+    email = data['email'].strip().lower()
+    if users_collection.find_one({'email': email}):
         return jsonify({'message': 'Correo ya registrado'}), 400
     # Hashear la contrasena
     hashed_password = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt())
     # Crear el nuevo usuario
     new_user = {
         'username': data['username'],
-        'email': data['email'],
+        'email': email,
         'password': hashed_password,
         'created_at': datetime.now(timezone.utc)
     }
@@ -152,5 +163,28 @@ def api_docs():
     return render_template('docs.html', docs=docs)
 
 
+# Health check endpoint
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Endpoint para verificar el estado del servicio"""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'auth-server',
+        'version': '1.0.0',
+        'database_connected': True if client.server_info() else False
+    }), 200
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    # Obtener puerto de variable de entorno o usar 5000 por defecto
+    port = int(os.getenv('PORT', 5000))
+    debug_mode = os.getenv('DEBUG', 'False').lower() == 'true'
+    
+    print(f"""\n{'='*50}
+🔐 Auth Server iniciando...
+{'='*50}
+Puerto: {port}
+Base de datos: {DB3_URL}
+Debug: {debug_mode}
+{'='*50}\n""")
+    
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)
