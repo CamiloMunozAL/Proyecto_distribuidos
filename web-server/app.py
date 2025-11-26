@@ -533,10 +533,40 @@ def delete_user(username):
 @app.route('/api/config', methods=['GET'])
 def get_config():
     """Provee configuración dinámica al frontend"""
+    # Devolvemos cadena vacía en auth_server_url para que el frontend use rutas relativas
+    # y las peticiones pasen por este web-server (que actuará de proxy)
     return jsonify({
-        'auth_server_url': AUTH_SERVER_URL,
+        'auth_server_url': "", 
         'web_server_url': WEB_SERVER_URL
     }), 200
+
+# ============ PROXY DE AUTENTICACIÓN ============
+# Estas rutas permiten que el frontend se comunique con el auth-server
+# a través del web-server, evitando exponer el auth-server públicamente.
+
+@app.route('/auth/login', methods=['POST'])
+def proxy_login():
+    try:
+        # Reenviar la petición al auth-server interno
+        response = requests.post(
+            f"{AUTH_SERVER_URL}/auth/login",
+            json=request.get_json()
+        )
+        return jsonify(response.json()), response.status_code
+    except requests.RequestException as e:
+        return jsonify({'message': f'Error de conexión con auth-server: {str(e)}'}), 500
+
+@app.route('/auth/register', methods=['POST'])
+def proxy_register():
+    try:
+        # Reenviar la petición al auth-server interno
+        response = requests.post(
+            f"{AUTH_SERVER_URL}/auth/register",
+            json=request.get_json()
+        )
+        return jsonify(response.json()), response.status_code
+    except requests.RequestException as e:
+        return jsonify({'message': f'Error de conexión con auth-server: {str(e)}'}), 500
 
 # Health check endpoint
 @app.route('/health', methods=['GET'])
