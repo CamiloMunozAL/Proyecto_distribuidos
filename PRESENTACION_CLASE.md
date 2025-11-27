@@ -111,8 +111,11 @@
 - ✅ Logs en tiempo real
 - ✅ Control de red incusbr0
 - ✅ Acceso remoto via Ngrok
+- ✅ Acceso completo a la VM como desarrollador (puerto 8443)
 
 **Incus-UI viene preinstalado** con IncusOS en puerto 8443
+
+**Nota de Seguridad:** El puerto 8443 da acceso de desarrollador completo a la máquina virtual. Si se agrega a whitelist, el usuario tiene los mismos permisos que el administrador.
 
 **Acceso:** https://[ngrok-ui-url]:8443
 

@@ -298,26 +298,69 @@ incus exec web-server -- systemctl start web-server
 
 ## Despliegue y Acceso Público
 
+### Arquitectura de Red Completa
+
+La conexión entre los contenedores y el usuario final funciona en varias capas:
+
+**1. Dentro de la VM (Red Incus):**
+
+- Los contenedores están en la red `incusbr0` (10.10.10.0/24)
+- web-server tiene IP 10.10.10.11 puerto 3000
+- auth-server tiene IP 10.10.10.10 puerto 5000
+
+**2. Proxy de Incus:**
+
+- Incus tiene un proxy interno que redirige peticiones
+- El puerto 3000 de la VM → contenedor web-server (10.10.10.11:3000)
+- El puerto 5000 de la VM → contenedor auth-server (10.10.10.10:5000)
+- El puerto 8443 de la VM → Incus-UI (acceso completo a la VM como desarrollador)
+
+**3. VirtualBox NAT Port Forwarding:**
+
+- Redirige puertos de la VM al host Windows:
+  - `Windows:3000` → `VM:3000` → `contenedor web-server:3000`
+  - `Windows:8443` → `VM:8443` → `Incus-UI`
+
+**4. Ngrok (Acceso Público):**
+
+- Ngrok se ejecuta en el host Windows
+- Apunta al mismo puerto que VirtualBox está exponiendo
+- `ngrok http 3000` crea túnel a `Windows:3000`
+- Genera URL pública: `https://abc123.ngrok-free.app`
+
+### Configuración de VirtualBox
+
+En VirtualBox se configuró NAT port forwarding:
+
+**Para la aplicación web:**
+
+- IP Anfitrión: 127.0.0.1
+- Puerto Anfitrión: 3000
+- IP Invitado: (IP de la VM)
+- Puerto Invitado: 3000
+
+**Para Incus-UI:**
+
+- IP Anfitrión: 127.0.0.1
+- Puerto Anfitrión: 8443
+- IP Invitado: (IP de la VM)
+- Puerto Invitado: 8443
+
+Así se puede abrir `http://localhost:3000` en el navegador de Windows.
+
 ### Acceder desde Internet
 
-Para que la aplicación sea accesible desde internet se usó Ngrok:
+Para acceso público se usó Ngrok en Windows:
 
 ```bash
 ngrok http 3000
 ```
 
-Esto genera una URL pública como `https://abc123.ngrok-free.app` que cualquiera puede abrir en su navegador. Ngrok redirige las peticiones al puerto 3000 del web-server.
+Esto genera una URL pública como `https://abc123.ngrok-free.app` que cualquiera puede abrir. El flujo completo es:
 
-### Configuración de VirtualBox
-
-En VirtualBox se configuró port forwarding para que el puerto 3000 de la máquina virtual sea accesible desde Windows:
-
-- IP Anfitrión: 127.0.0.1
-- Puerto Anfitrión: 3000
-- IP Invitado: 10.10.10.11
-- Puerto Invitado: 3000
-
-Así se puede abrir `http://localhost:3000` en el navegador de Windows.
+```
+Internet → Ngrok → Windows:3000 → VM:3000 → web-server:3000
+```
 
 ### Variables de Entorno
 
