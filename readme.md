@@ -73,7 +73,5 @@ Para entender cómo funciona el sistema completo, consulta:
 ## 👥 Equipo
 
 Camilo Muñoz
-
----
-
-**Nota:** Si necesitas ejecutar el proyecto, consulta `INSTRUCCIONES_IMPORTACION.md` para saber cómo importar los contenedores Incus exportados.
+Juan Pablo Medina
+Sergio Andres Castellanos
