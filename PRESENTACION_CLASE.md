@@ -120,7 +120,7 @@
 
 ## 2. 🏗️ Arquitectura del Sistema
 
-> **[MOSTRAR DIAGRAMA: `1_arquitectura_general.png`]**
+![Arquitectura General](./Diagrams/Arquitectura_General.png)
 
 ### Componentes Principales
 
@@ -156,7 +156,7 @@
 
 ## 2. 🗂️ Fragmentación de Datos
 
-![Fragmentación Horizontal](./Diagrams/2_fragmentacion_horizontal.png)
+![Fragmentación Horizontal](./Diagrams/Fragmentacion_Horizontal.png)
 
 ### Estrategia: Fragmentación Horizontal
 
@@ -190,7 +190,7 @@ def get_database_for_product(product_name):
 
 ## 3. 🔄 Replicación y Alta Disponibilidad
 
-![Replicación Asíncrona](./Diagrams/3_replicacion_asincrona.png)
+![Replicación Asíncrona](./Diagrams/Replicacion_Asincrona.png)
 
 ### Configuración de Replica Sets
 
@@ -227,7 +227,7 @@ rs.initiate({
 
 ### Failover Automático
 
-![Failover Automático](./Diagrams/5_failover_automatico.png)
+![Failover Automático](./Diagrams/Failover_Automatico.png)
 
 **Escenario:** PRIMARY falla (apagón, crash, systemctl stop)
 
@@ -256,7 +256,7 @@ mongosh --port 27018 --eval 'rs.status()'
 
 ## 4. 🔐 Sistema de Autenticación
 
-![Autenticación JWT](./Diagrams/4_autenticacion_jwt.png)
+![Autenticación JWT](./Diagrams/Autenticacion_JWT.png)
 
 ### Tecnologías
 
@@ -296,7 +296,7 @@ Cliente → Petición + Token JWT → web-server → Verifica con auth-server �
 
 ## 5. 🚀 Despliegue con Incus
 
-![Despliegue Incus](./Diagrams/6_despliegue_incus.png)
+![Despliegue Incus](./Diagrams/Despliegue_Incus.png)
 
 ### Proceso de Desarrollo → Producción
 
