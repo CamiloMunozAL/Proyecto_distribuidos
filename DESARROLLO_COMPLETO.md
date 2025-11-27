@@ -56,26 +56,29 @@ Este proyecto implementa una **plataforma web distribuida de gestión de product
 │  │ Puerto: 3000 │  │ Puerto: 5000 │  │ Puertos:     │    │
 │  │              │  │              │  │ 27017-27019  │    │
 │  │ Flask App    │◄─┤ Auth JWT     │  │              │    │
-│  │ Dashboard    │  │ Usuarios DB3 │  │ MongoDB      │    │
+│  │ Dashboard    │  │              │  │ MongoDB      │    │
 │  │ CRUD         │  └──────────────┘  │ Replica Set  │    │
 │  │              │                     │ rsA          │    │
-│  │ Conexión:    │                     │              │    │
-│  │ - DB1 (A-M)  │◄────────────────────┤ • DB1 (A-M)  │    │
-│  │ - DB2 (N-Z)  │◄────────┐           │ • DB2 (N-Z)  │    │
-│  └──────────────┘         │           │ • DB3 (User) │    │
-│                           │           └──────────────┘    │
-│  ┌──────────────┐         │  ┌──────────────┐            │
-│  │    db2       │◄────────┘  │    db3       │            │
-│  │ 10.10.10.13  │            │ 10.10.10.14  │            │
-│  │ Puerto:27017 │            │ Puerto:27017 │            │
-│  │              │            │              │            │
-│  │ MongoDB      │            │ MongoDB      │            │
-│  │ Replica Set  │◄───────────┤ Replica Set  │            │
-│  │ rsA (slave)  │  Réplica   │ rsA (slave)  │            │
-│  └──────────────┘            └──────────────┘            │
-│         ▲                                                  │
-│         │ Replicación Automática MongoDB                  │
-│         └──────────────────────────────────────────────┘  │
+│  │ Conexión:    │                     │ (Prod. A-M)  │    │
+│  │ - rsA:27017  │◄────────────────────┤ • :27017 (P) │    │
+│  │ - rsA:27018  │◄────────────────────┤ • :27018 (S) │    │
+│  │ - rsA:27019  │◄────────────────────┤ • :27019 (S) │    │
+│  └──────────────┘                     └──────────────┘    │
+│                                                            │
+│  ┌──────────────┐         ┌──────────────┐               │
+│  │    db2       │         │    db3       │               │
+│  │ 10.10.10.13  │         │ 10.10.10.14  │               │
+│  │ Puertos:     │         │ Puerto:27017 │               │
+│  │ 27017-27019  │         │              │               │
+│  │              │         │ MongoDB      │               │
+│  │ MongoDB      │         │ Standalone   │               │
+│  │ Replica Set  │         │ (Usuarios)   │               │
+│  │ rsB          │◄────────┤              │               │
+│  │ (Prod. N-Z)  │         │ Sin réplicas │               │
+│  │ • :27017 (P) │         └──────────────┘               │
+│  │ • :27018 (S) │                                         │
+│  │ • :27019 (S) │                                         │
+│  └──────────────┘                                         │
 └─────────────────────────────────────────────────────────────┘
          │
          │ VirtualBox Port Forward (3000 → Host Windows)
@@ -86,13 +89,13 @@ Este proyecto implementa una **plataforma web distribuida de gestión de product
 
 ### Contenedores Desplegados
 
-| Contenedor      | IP Interna  | Puerto      | Función                         | Base de Datos   |
-| --------------- | ----------- | ----------- | ------------------------------- | --------------- |
-| **web-server**  | 10.10.10.11 | 3000        | Aplicación web, CRUD productos  | Cliente MongoDB |
-| **auth-server** | 10.10.10.10 | 5000        | Autenticación JWT               | Cliente MongoDB |
-| **db1**         | 10.10.10.12 | 27017-27019 | MongoDB Replica Set (Primary)   | rsA Primary     |
-| **db2**         | 10.10.10.13 | 27017       | MongoDB Replica Set (Secondary) | rsA Secondary   |
-| **db3**         | 10.10.10.14 | 27017       | MongoDB Replica Set (Secondary) | rsA Secondary   |
+| Contenedor      | IP Interna  | Puertos     | Función                                 | Base de Datos                         |
+| --------------- | ----------- | ----------- | --------------------------------------- | ------------------------------------- |
+| **web-server**  | 10.10.10.11 | 3000        | Aplicación web, CRUD productos          | Cliente MongoDB                       |
+| **auth-server** | 10.10.10.10 | 5000        | Autenticación JWT                       | Cliente MongoDB                       |
+| **db1**         | 10.10.10.12 | 27017-27019 | MongoDB Replica Set rsA (Productos A-M) | 3 instancias: 1 Primary + 2 Secondary |
+| **db2**         | 10.10.10.13 | 27017-27019 | MongoDB Replica Set rsB (Productos N-Z) | 3 instancias: 1 Primary + 2 Secondary |
+| **db3**         | 10.10.10.14 | 27017       | MongoDB Standalone (Usuarios)           | 1 instancia sin réplicas              |
 
 ---
 
@@ -227,10 +230,10 @@ Scripts que configuran servicios systemd en cada contenedor para:
 
 Se implementó una **fragmentación horizontal** basada en el **nombre del producto**, dividiendo el espacio alfabético en dos rangos:
 
-| Base de Datos | Rango de Nombres | Ejemplo de Productos           | Puerto |
-| ------------- | ---------------- | ------------------------------ | ------ |
-| **DB1**       | A - M            | Arroz, Café, Leche, Manzana    | 27017  |
-| **DB2**       | N - Z            | Naranja, Pan, Queso, Zanahoria | 27018  |
+| Base de Datos         | Rango de Nombres | Ejemplo de Productos           | Replica Set | Contenedor |
+| --------------------- | ---------------- | ------------------------------ | ----------- | ---------- |
+| **products_db (A-M)** | A - M            | Arroz, Café, Leche, Manzana    | rsA         | db1        |
+| **products_db (N-Z)** | N - Z            | Naranja, Pan, Queso, Zanahoria | rsB         | db2        |
 
 ### Implementación en Código
 
@@ -297,49 +300,141 @@ if not product:
 
 ## 🔄 Replicación y Alta Disponibilidad
 
-### MongoDB Replica Set `rsA`
+### Arquitectura de Replicación
 
-Se configuró un **Replica Set** de MongoDB con 3 miembros para garantizar tolerancia a fallos y alta disponibilidad:
+Se implementaron **dos Replica Sets independientes** de MongoDB, cada uno con 3 instancias dentro de un mismo contenedor:
+
+**Replica Set rsA (Productos A-M) - Contenedor db1:**
 
 ```
-┌──────────┐
-│   db1    │ ◄── PRIMARY (Acepta escrituras y lecturas)
-│ 10.10.10.12
-└────┬─────┘
-     │
-     │ Replicación
-     │ Asíncrona
-     │
-     ├────────┐
-     │        │
-┌────▼─────┐  ┌────▼─────┐
-│   db2    │  │   db3    │ ◄── SECONDARIES (Solo lectura)
-│ 10.10.10.13  │ 10.10.10.14
-└──────────┘  └──────────┘
+┌─────────────────────────────┐
+│      Contenedor db1         │
+│      10.10.10.12            │
+│                             │
+│  ┌─────────────────────┐   │
+│  │  :27017 PRIMARY     │   │ ◄── Escrituras y lecturas
+│  └──────────┬──────────┘   │
+│             │               │
+│  ┌──────────▼──────────┐   │
+│  │  :27018 SECONDARY   │   │ ◄── Solo lectura
+│  └─────────────────────┘   │
+│             │               │
+│  ┌──────────▼──────────┐   │
+│  │  :27019 SECONDARY   │   │ ◄── Solo lectura
+│  └─────────────────────┘   │
+│                             │
+│  Replica Set: rsA           │
+│  DB: products_db (A-M)      │
+└─────────────────────────────┘
 ```
 
-### Configuración del Replica Set
+**Replica Set rsB (Productos N-Z) - Contenedor db2:**
 
-#### 1. Inicialización en db1 (Primary)
+```
+┌─────────────────────────────┐
+│      Contenedor db2         │
+│      10.10.10.13            │
+│                             │
+│  ┌─────────────────────┐   │
+│  │  :27017 PRIMARY     │   │ ◄── Escrituras y lecturas
+│  └──────────┬──────────┘   │
+│             │               │
+│  ┌──────────▼──────────┐   │
+│  │  :27018 SECONDARY   │   │ ◄── Solo lectura
+│  └─────────────────────┘   │
+│             │               │
+│  ┌──────────▼──────────┐   │
+│  │  :27019 SECONDARY   │   │ ◄── Solo lectura
+│  └─────────────────────┘   │
+│                             │
+│  Replica Set: rsB           │
+│  DB: products_db (N-Z)      │
+└─────────────────────────────┘
+```
+
+**Base de Datos de Usuarios - Contenedor db3:**
+
+```
+┌─────────────────────────────┐
+│      Contenedor db3         │
+│      10.10.10.14            │
+│                             │
+│  ┌─────────────────────┐   │
+│  │  :27017 STANDALONE  │   │ ◄── Sin réplicas
+│  └─────────────────────┘   │
+│                             │
+│  DB: auth_db (Usuarios)     │
+│  Sin Replica Set            │
+└─────────────────────────────┘
+```
+
+### Configuración de los Replica Sets
+
+#### 1. Inicialización del Replica Set rsA en db1
+
+**Las 3 instancias MongoDB están en el mismo contenedor db1:**
 
 ```bash
+# Iniciar las 3 instancias de MongoDB en db1
+incus exec db1 -- systemctl start mongod-27017
+incus exec db1 -- systemctl start mongod-27018
+incus exec db1 -- systemctl start mongod-27019
+
+# Configurar el replica set rsA
 incus exec db1 -- mongosh --port 27017 --eval '
 rs.initiate({
   _id: "rsA",
   members: [
-    { _id: 0, host: "10.10.10.12:27017", priority: 2 },
-    { _id: 1, host: "10.10.10.13:27017", priority: 1 },
-    { _id: 2, host: "10.10.10.14:27017", priority: 1 }
+    { _id: 0, host: "10.10.10.12:27017", priority: 3 },
+    { _id: 1, host: "10.10.10.12:27018", priority: 2 },
+    { _id: 2, host: "10.10.10.12:27019", priority: 1 }
   ]
 })
 '
 ```
 
-#### 2. Verificación del Estado
+#### 2. Inicialización del Replica Set rsB en db2
+
+**Las 3 instancias MongoDB están en el mismo contenedor db2:**
 
 ```bash
-rs.status()  # Muestra el estado del replica set
-rs.conf()    # Muestra la configuración
+# Iniciar las 3 instancias de MongoDB en db2
+incus exec db2 -- systemctl start mongod-27017
+incus exec db2 -- systemctl start mongod-27018
+incus exec db2 -- systemctl start mongod-27019
+
+# Configurar el replica set rsB
+incus exec db2 -- mongosh --port 27017 --eval '
+rs.initiate({
+  _id: "rsB",
+  members: [
+    { _id: 0, host: "10.10.10.13:27017", priority: 3 },
+    { _id: 1, host: "10.10.10.13:27018", priority: 2 },
+    { _id: 2, host: "10.10.10.13:27019", priority: 1 }
+  ]
+})
+'
+```
+
+#### 3. Configuración de db3 (Standalone - Sin Réplicas)
+
+```bash
+# Iniciar única instancia en db3
+incus exec db3 -- systemctl start mongod-27017
+# No requiere configuración de replica set
+```
+
+#### 4. Verificación del Estado
+
+```bash
+# Verificar rsA en db1
+incus exec db1 -- mongosh --port 27017 --eval 'rs.status()'
+
+# Verificar rsB en db2
+incus exec db2 -- mongosh --port 27017 --eval 'rs.status()'
+
+# Verificar db3 standalone
+incus exec db3 -- mongosh --port 27017 --eval 'db.serverStatus().host'
 ```
 
 ### Funcionamiento de la Replicación
@@ -350,22 +445,36 @@ rs.conf()    # Muestra la configuración
 4. **Failover automático**: Si el PRIMARY falla, se elige automáticamente un nuevo PRIMARY
 5. **Consistencia eventual**: Los SECONDARIES pueden tener un pequeño retraso respecto al PRIMARY
 
-### Bases de Datos en el Replica Set
+### Bases de Datos Distribuidas
 
-Aunque hay 3 contenedores MongoDB, todos son parte del mismo Replica Set `rsA`. Las bases de datos lógicas son:
+La arquitectura utiliza 3 contenedores MongoDB con propósitos específicos:
 
-- **products_db**: Almacena productos fragmentados (DB1 y DB2)
-- **auth_db**: Almacena usuarios (DB3)
+**Contenedor db1 (Replica Set rsA):**
 
-Cada contenedor MongoDB ejecuta **todas las bases de datos** como parte del replica set, garantizando redundancia completa.
+- **products_db**: Almacena productos con nombres de A-M
+- Tiene 3 instancias MongoDB (27017-27019) formando el replica set rsA
+- Una instancia es PRIMARY, las otras dos SECONDARY
 
-### Ventajas del Replica Set
+**Contenedor db2 (Replica Set rsB):**
 
-✅ **Alta disponibilidad**: Si un nodo falla, el sistema sigue funcionando  
-✅ **Tolerancia a fallos**: Failover automático sin intervención manual  
-✅ **Backup en caliente**: Los SECONDARIES sirven como copias de seguridad  
-✅ **Escalabilidad de lectura**: Se pueden distribuir lecturas entre nodos  
-✅ **Protección de datos**: Múltiples copias de la información
+- **products_db**: Almacena productos con nombres de N-Z
+- Tiene 3 instancias MongoDB (27017-27019) formando el replica set rsB
+- Una instancia es PRIMARY, las otras dos SECONDARY
+
+**Contenedor db3 (Standalone):**
+
+- **auth_db**: Almacena usuarios y credenciales de autenticación
+- Tiene 1 única instancia MongoDB (27017)
+- **No tiene réplicas** - configuración standalone
+
+### Ventajas de Esta Arquitectura
+
+✅ **Alta disponibilidad por fragmento**: Cada fragmento (A-M y N-Z) tiene su propio replica set  
+✅ **Tolerancia a fallos local**: Si falla una instancia dentro de db1 o db2, las otras continúan  
+✅ **Backup en caliente**: Cada PRIMARY tiene 2 SECONDARIES como respaldo  
+✅ **Escalabilidad de lectura**: Se pueden distribuir lecturas entre las 3 instancias de cada replica set  
+✅ **Aislamiento de fallos**: Un problema en rsA no afecta a rsB y viceversa  
+✅ **Simplicidad en usuarios**: db3 standalone es suficiente para autenticación (sin necesidad de réplicas)
 
 ---
 
@@ -513,13 +622,15 @@ incus start auth-server web-server db1 db2 db3
 4. **Logs estructurados**: Integración con journalctl para depuración
 5. **Dependencias**: Define orden de inicio (MongoDB antes que Flask)
 
-### Configuración de MongoDB en db1
+### Configuración de MongoDB en db1 (3 instancias - Replica Set rsA)
 
-Archivo: `/etc/systemd/system/mongod-27017.service`
+El contenedor db1 ejecuta **3 instancias de MongoDB** en diferentes puertos, todas parte del replica set rsA.
+
+**Archivo: `/etc/systemd/system/mongod-27017.service` (PRIMARY)**
 
 ```ini
 [Unit]
-Description=MongoDB Database Server (Port 27017 - DB1 A-M)
+Description=MongoDB Database Server rsA (Port 27017 - PRIMARY)
 After=network.target
 
 [Service]
@@ -535,12 +646,56 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
+**Archivo: `/etc/systemd/system/mongod-27018.service` (SECONDARY)**
+
+```ini
+[Unit]
+Description=MongoDB Database Server rsA (Port 27018 - SECONDARY)
+After=network.target mongod-27017.service
+
+[Service]
+Type=forking
+User=mongodb
+Group=mongodb
+ExecStart=/usr/bin/mongod --replSet rsA --dbpath /var/lib/mongo2 --port 27018 --bind_ip 0.0.0.0 --fork --logpath /var/lib/mongo2/mongo.log --pidfilepath /var/lib/mongo2/mongod.pid
+PIDFile=/var/lib/mongo2/mongod.pid
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Archivo: `/etc/systemd/system/mongod-27019.service` (SECONDARY)**
+
+```ini
+[Unit]
+Description=MongoDB Database Server rsA (Port 27019 - SECONDARY)
+After=network.target mongod-27017.service
+
+[Service]
+Type=forking
+User=mongodb
+Group=mongodb
+ExecStart=/usr/bin/mongod --replSet rsA --dbpath /var/lib/mongo3 --port 27019 --bind_ip 0.0.0.0 --fork --logpath /var/lib/mongo3/mongo.log --pidfilepath /var/lib/mongo3/mongod.pid
+PIDFile=/var/lib/mongo3/mongod.pid
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
 **Parámetros importantes:**
 
-- `--replSet rsA`: Nombre del replica set
+- `--replSet rsA`: Nombre del replica set (rsA para productos A-M)
+- `--dbpath`: Directorio diferente para cada instancia (/var/lib/mongo1, mongo2, mongo3)
+- `--port`: Puerto diferente para cada instancia (27017, 27018, 27019)
 - `--bind_ip 0.0.0.0`: Acepta conexiones de cualquier IP (red Incus)
 - `--fork`: Se ejecuta en background
 - `Restart=on-failure`: Reinicio automático si falla
+
+**Nota:** El contenedor db2 tiene una configuración idéntica pero con `--replSet rsB` para productos N-Z.
 
 ### Configuración de auth-server
 
@@ -714,12 +869,23 @@ PORT=3000
 DEBUG=False
 SECRET_KEY=produccion_clave_segura_xyz
 AUTH_SERVER_URL=http://10.10.10.10:5000
-DB1_URL=mongodb://10.10.10.12:27017,10.10.10.13:27017,10.10.10.14:27017/products_db?replicaSet=rsA
-DB2_URL=mongodb://10.10.10.12:27017,10.10.10.13:27017,10.10.10.14:27017/products_db?replicaSet=rsA
-DB3_URL=mongodb://10.10.10.12:27017,10.10.10.13:27017,10.10.10.14:27017/auth_db?replicaSet=rsA
+
+# Replica Set rsA (Productos A-M) - 3 instancias en db1
+DB1_URL=mongodb://10.10.10.12:27017,10.10.10.12:27018,10.10.10.12:27019/products_db?replicaSet=rsA
+
+# Replica Set rsB (Productos N-Z) - 3 instancias en db2
+DB2_URL=mongodb://10.10.10.13:27017,10.10.10.13:27018,10.10.10.13:27019/products_db?replicaSet=rsB
+
+# MongoDB Standalone (Usuarios) - 1 instancia en db3
+DB3_URL=mongodb://10.10.10.14:27017/auth_db
 ```
 
-**Nota:** Las URLs de MongoDB incluyen los 3 nodos del replica set para alta disponibilidad.
+**Notas importantes:**
+
+- **DB1_URL**: Incluye las 3 instancias del replica set rsA (todas en IP 10.10.10.12)
+- **DB2_URL**: Incluye las 3 instancias del replica set rsB (todas en IP 10.10.10.13)
+- **DB3_URL**: Conexión directa a instancia standalone (sin replica set)
+- El driver de MongoDB automáticamente se conecta al PRIMARY y distribuye lecturas
 
 ---
 
@@ -781,9 +947,10 @@ incus exec db2 -- mongosh --port 27017 --eval '
 
 ### Pruebas de Replicación
 
-#### 1. Verificar Estado del Replica Set
+#### 1. Verificar Estado del Replica Set rsA (db1)
 
 ```bash
+# Verificar las 3 instancias del replica set rsA
 incus exec db1 -- mongosh --port 27017 --eval 'rs.status()' | grep -E "name|stateStr"
 ```
 
@@ -791,41 +958,88 @@ incus exec db1 -- mongosh --port 27017 --eval 'rs.status()' | grep -E "name|stat
 
 ```
 name: "10.10.10.12:27017", stateStr: "PRIMARY"
-name: "10.10.10.13:27017", stateStr: "SECONDARY"
-name: "10.10.10.14:27017", stateStr: "SECONDARY"
+name: "10.10.10.12:27018", stateStr: "SECONDARY"
+name: "10.10.10.12:27019", stateStr: "SECONDARY"
 ```
 
-#### 2. Prueba de Failover
+#### 2. Verificar Estado del Replica Set rsB (db2)
 
 ```bash
-# Detener el PRIMARY (db1)
-incus exec db1 -- systemctl stop mongod-27017
-
-# Esperar 10 segundos y verificar nuevo PRIMARY
-sleep 10
+# Verificar las 3 instancias del replica set rsB
 incus exec db2 -- mongosh --port 27017 --eval 'rs.status()' | grep -E "name|stateStr"
 ```
 
-**Resultado:** db2 o db3 se convierte automáticamente en PRIMARY.
+**Salida esperada:**
 
-#### 3. Verificar Sincronización de Datos
+```
+name: "10.10.10.13:27017", stateStr: "PRIMARY"
+name: "10.10.10.13:27018", stateStr: "SECONDARY"
+name: "10.10.10.13:27019", stateStr: "SECONDARY"
+```
+
+#### 3. Prueba de Failover en rsA
 
 ```bash
-# Insertar producto en PRIMARY (db1)
+# Detener el PRIMARY de rsA (puerto 27017 en db1)
+incus exec db1 -- systemctl stop mongod-27017
+
+# Esperar 10 segundos para elección de nuevo PRIMARY
+sleep 10
+
+# Verificar nuevo PRIMARY (debería ser 27018 o 27019)
+incus exec db1 -- mongosh --port 27018 --eval 'rs.status()' | grep -E "name|stateStr"
+```
+
+**Resultado:** La instancia en puerto 27018 o 27019 se convierte automáticamente en PRIMARY.
+
+#### 4. Verificar Sincronización Interna en rsA
+
+```bash
+# Insertar producto en PRIMARY de rsA (puerto 27017 en db1)
 incus exec db1 -- mongosh --port 27017 --eval '
   use products_db
-  db.products.insertOne({name:"Test",price:10,stock:5})
+  db.products.insertOne({name:"Arroz",price:5,stock:100})
 '
 
-# Verificar en SECONDARY (db2)
-incus exec db2 -- mongosh --port 27017 --eval '
+# Verificar en SECONDARY de rsA (puerto 27018 en db1)
+incus exec db1 -- mongosh --port 27018 --eval '
   rs.secondaryOk()
   use products_db
-  db.products.find({name:"Test"})
+  db.products.find({name:"Arroz"})
 '
 ```
 
-**Resultado:** El producto aparece en db2, confirmando replicación exitosa.
+**Resultado:** El producto aparece en el SECONDARY, confirmando replicación exitosa dentro del mismo contenedor.
+
+#### 5. Verificar Fragmentación Entre rsA y rsB
+
+```bash
+# Insertar producto A-M en rsA (db1)
+curl -X POST http://10.10.10.11:3000/products \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Manzana","price":2.5,"stock":50}'
+
+# Insertar producto N-Z en rsB (db2)
+curl -X POST http://10.10.10.11:3000/products \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Naranja","price":3.0,"stock":60}'
+
+# Verificar que Manzana está en rsA (db1)
+incus exec db1 -- mongosh --port 27017 --eval '
+  use products_db
+  db.products.find({name:"Manzana"})
+'
+
+# Verificar que Naranja está en rsB (db2)
+incus exec db2 -- mongosh --port 27017 --eval '
+  use products_db
+  db.products.find({name:"Naranja"})
+'
+```
+
+**Resultado:** Cada producto se almacena en su replica set correspondiente según la inicial del nombre.
 
 ---
 
